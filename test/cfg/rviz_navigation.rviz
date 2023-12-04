@@ -25,7 +25,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: LaserScan
+    SyncSource: ""
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -83,7 +83,7 @@ Visualization Manager:
       Displays:
         - Class: rviz/Marker
           Enabled: true
-          Marker Topic: /move_base/HomingLocalPlanner/teb_markers
+          Marker Topic: /move_base/HomingLocalPlanner/homing_markers
           Name: HomMarker
           Namespaces:
             PointObstacles: true

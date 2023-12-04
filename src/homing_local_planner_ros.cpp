@@ -194,7 +194,12 @@ namespace homing_local_planner
             cmd_vel.angular.z = omega_filter_.filterCall(ros::Time::now(), omega);
         else
             cmd_vel.angular.z = omega;
-        if (xy_reached_)
+
+        double d_atan = std::atan2(dy1, dx1);
+        double d_atan_phi = fabs(d_atan - phi);
+        if ((xy_reached_) or
+            (cfg_.robot.turn_around_priority and fabs(phi) > 0.75 and
+             (d_atan_phi < 0.5 or fmod(d_atan_phi, M_PI) < 0.5 or fmod(d_atan_phi, M_PI) > 2.6)))
         {
             cmd_vel.linear.x = 0;
             cmd_vel.angular.z = clip(phi, cfg_.robot.max_vel_theta * (-1.0), cfg_.robot.max_vel_theta);
@@ -344,7 +349,9 @@ namespace homing_local_planner
             via_point_yaw = std::atan2(transformed_plan[i].pose.position.y - transformed_plan[prev_idx].pose.position.y,
                                        transformed_plan[i].pose.position.x - transformed_plan[prev_idx].pose.position.x);
             via_points_.push_back(Eigen::Vector3d(transformed_plan[i].pose.position.x, transformed_plan[i].pose.position.y, via_point_yaw));
-            local_plan_.push_back(transformed_plan[i]);
+            geometry_msgs::PoseStamped local_plan_pose = transformed_plan[i];
+            local_plan_pose.pose.orientation = tf::createQuaternionMsgFromYaw(via_point_yaw);
+            local_plan_.push_back(local_plan_pose);
             prev_idx = i;
         }
     }

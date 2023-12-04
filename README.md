@@ -1,8 +1,8 @@
 # homing_local_planner ROS Package
 
-A simple, easy-to-use, and effective path tracking planner.
+**A simple, easy-to-use, and effective path tracking planner with a complete demo.**
 
-The homing_local_planner package implements a plugin to the base_local_planner of the 2D navigation stack. The underlying method called Homing Control has the objective to guide a robot along a reference path, which is a pure pursuit algorithm Implemented based on [1]  as reference. And code implementation of the package has some reference to [teb_local_planner](http://wiki.ros.org/teb_local_planner).
+The homing_local_planner package implements a plug-in to the *nav_core::BaseLocalPlanner* of the 2D navigation stack in ROS1 or a plug-in to the *nav2_core::Controller* of the  Nav2 in ROS2. The underlying method called Homing Control has the objective to guide a robot along a reference path, which is a pure pursuit algorithm Implemented based on [1]  as reference. And code implementation of the package has some reference to [teb_local_planner](http://wiki.ros.org/teb_local_planner).
 
 This scheme considers a dynamic goal pose on the path located some distance ahead of the robots current pose. The robot is supposed to chase the moving goal pose (look-ahead pose) on the path. This path tracking strategy is similar to human drivers that steer a vehicle towards a dynamic lookahead point on the road, which distance depends on the vehicle speed, road curvature and visibility. 
 
@@ -10,34 +10,98 @@ This scheme considers a dynamic goal pose on the path located some distance ahea
 
 ##  Install 
 
+Git clone this repository  and checkout the corresponding branch, then compile and run.
+
 ```shell
-cd ~/your_ros_ws/src
 git clone https://github.com/zengxiaolei/homing_local_planner.git
-catkin_make
 ```
+
 
 
 ## Run and Demo
 
-There's a complete demo in this package and you can launch it easily by following command:
+### 2D Simulator
+
+There's a complete demo based on 2D stage simulator in this package. Firstly make sure the simulation platform is installed.
+
+- For ROS2: [stage_ros2](https://github.com/n0nzzz/stage_ros2)
+
+- For ROS1:  [stage_ros](https://github.com/ros-simulation/stage_ros)
+
+
+
+### Run
+
+Then you can launch it easily by following command:
+
+- For ROS2:
+
 
 ```shell
+ros2 run stage_ros stageros /home/.../homing_local_planner/test/stage/maze_diff_drive.world
+ros2 launch homing_local_planner demo.launch.py
+```
+
+
+- For ROS1:
+
+```
 roslaunch homing_local_planner demo.launch
 ```
+
+
+
+### Demo
+
 Dyamic gif demo is as following.
 
 If there's a problem with display, you can check file path: /README_img/homing_demo.gif
 
+- Forward navigation:
+
 ![homing_demo](./README_img/homing_demo.gif)
 
+- Navigation with direction adjustment and backwards:
+
+![homing_demo_turn](./README_img/homing_turn_demo.gif)
+
+## Parameter
+
+Robot:
+
+- **max_vel_x**: maximum velocity in the x direction of the robot
+- **max_vel_theta**: maximum angular velocity of the robot
+- **acc_lim_x**: maximum translational acceleration of the robot
+- **acc_lim_theta**: maximum angular acceleration of the robot
+- **turn_around_priority**: if true, the robot preferentially adjusts the orientation to fit the direction of the path
+
+Trajectory:
+
+- **max_global_plan_lookahead_dist**: specify maximum length (cumulative Euclidean distances) of the subset of the global plan taken into account for optimization
+- **global_plan_viapoint_sep**: min. separation between each two consecutive via-points extracted from the global plan
+- **global_plan_goal_sep**: min. separation between the last via-point and goal pose
+- **global_plan_prune_distance**: distance between robot and via_points of global plan which is used for pruning
+
+Goal Tolerance:
+
+- **yaw_goal_tolerance**:  allowed final orientation(yaw) error
+- **xy_goal_tolerance**: allowed final euclidean distance to the goal position
+
+Optimization:
+
+- **k_rho**: proportional parameter for linear velocity adjustment based on the Euclidean distance of the robot position to the current target
+- **k_alpha**: proportional parameter for angular velocity adjustment based on the tangential angle of the target position in the robot's frame of reference
+- **k_phi**: proportional parameter for angular velocity adjustment based on the difference between the robot's orientation(yaw) and the current target orientation(yaw)
 
 
-## Note
+
+## Todo
 
 - The obstacle avoidance function is incomplete and is still under development.
-- The documentation for the parameters is still in preparation, but you can get an idea of what it does based on the name of them.
 
+- Support more rosversions
 
+  
 
 ## References
 
@@ -52,7 +116,7 @@ Control, Journal of Dynamic Systems, Measurement, and Control, vol. 121, 1999
 
 ## License
 
-The *homing_local_planner* package is licensed under the BSD license. It depends on other ROS packages, which are listed in the package.xml. They are also BSD licensed.
+The *homing_local_planner* package is licensed under the **BSD 3-Clause** license. It depends on other ROS packages, which are listed in the package.xml. They are also BSD licensed.
 
 Some third-party dependencies are included that are licensed under different terms:
 

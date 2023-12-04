@@ -98,7 +98,7 @@ namespace homing_local_planner
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     };
-    //! Abbrev. for shared instances of the TebVisualization
+    //! Abbrev. for shared instances of the HomingVisualization
     typedef boost::shared_ptr<HomingVisualization> HomingVisualizationPtr;
 }
 #endif /* VISUALIZATION_H_ */

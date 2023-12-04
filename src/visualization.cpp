@@ -56,7 +56,6 @@ namespace homing_local_planner
         homing_marker_pub_ = nh.advertise<visualization_msgs::Marker>("homing_markers", 100);
         local_plan_pub_ = nh.advertise<nav_msgs::Path>("local_plan", 1);
         global_plan_pub_ = nh.advertise<nav_msgs::Path>("global_plan", 1);
-        homing_marker_pub_ = nh.advertise<visualization_msgs::Marker>("teb_markers", 1000);
         initialized_ = true;
     }
     void HomingVisualization::publishViaPoints(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &via_points,

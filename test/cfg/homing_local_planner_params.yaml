@@ -15,6 +15,7 @@ HomingLocalPlanner:
   max_vel_theta: 0.4
   acc_lim_x: 0.2
   acc_lim_theta: 0.5
+  turn_around_priority: True
 
   # GoalTolerance
 

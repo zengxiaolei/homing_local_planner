@@ -56,6 +56,7 @@ namespace homing_local_planner
             double max_vel_theta;       //!< Maximum angular velocity of the robot
             double acc_lim_x;           //!< Maximum translational acceleration of the robot
             double acc_lim_theta;       //!< Maximum angular acceleration of the robot
+            bool turn_around_priority;  //!< If true, the robot preferentially adjusts the orientation to fit the direction of the path
         } robot;
 
         //! Goal tolerance related parameters
@@ -70,16 +71,16 @@ namespace homing_local_planner
         {
             double max_global_plan_lookahead_dist; //!< Specify maximum length (cumulative Euclidean distances) of the subset of the global plan taken into account for optimization [if <=0: disabled; the length is also bounded by the local costmap size!]
             double global_plan_viapoint_sep;       //!< Min. separation between each two consecutive via-points extracted from the global plan (if negative: disabled)
-            double global_plan_goal_sep;
-            double global_plan_prune_distance; //!< Distance between robot and via_points of global plan which is used for pruning
+            double global_plan_goal_sep;           //!< Min. separation between the last via-point and goal pose
+            double global_plan_prune_distance;     //!< Distance between robot and via_points of global plan which is used for pruning
         } trajectory;
 
         //! Optimization related parameters
         struct Optimization
         {
-            double k_rho;
-            double k_alpha;
-            double k_phi;
+            double k_rho;   //!< Proportional parameter for linear velocity adjustment based on the Euclidean distance of the robot position to the current target
+            double k_alpha; //!< Proportional parameter for angular velocity adjustment based on the tangential angle of the target position in the robot's frame of reference
+            double k_phi;   //!< Proportional parameter for angular velocity adjustment based on the difference between the robot's orientation(yaw) and the current target orientation(yaw)
         } optimization;
 
         HomingConfig()
@@ -90,6 +91,7 @@ namespace homing_local_planner
             robot.max_vel_theta = 0.5;
             robot.acc_lim_x = 0.2;
             robot.acc_lim_theta = 0.2;
+            robot.turn_around_priority = false;
 
             // GoalTolerance
             goal_tolerance.xy_goal_tolerance = 0.2;

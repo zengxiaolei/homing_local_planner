@@ -47,6 +47,7 @@ namespace homing_local_planner
         nh.param("max_vel_theta", robot.max_vel_theta, robot.max_vel_theta);
         nh.param("acc_lim_x", robot.acc_lim_x, robot.acc_lim_x);
         nh.param("acc_lim_theta", robot.acc_lim_theta, robot.acc_lim_theta);
+        nh.param("turn_around_priority", robot.turn_around_priority, robot.turn_around_priority);
 
         // GoalTolerance
         nh.param("xy_goal_tolerance", goal_tolerance.xy_goal_tolerance, goal_tolerance.xy_goal_tolerance);
@@ -73,6 +74,7 @@ namespace homing_local_planner
         robot.max_vel_theta = cfg.max_vel_theta;
         robot.acc_lim_x = cfg.acc_lim_x;
         robot.acc_lim_theta = cfg.acc_lim_theta;
+        robot.turn_around_priority = cfg.turn_around_priority;
 
         // GoalTolerance
         goal_tolerance.xy_goal_tolerance = cfg.xy_goal_tolerance;
