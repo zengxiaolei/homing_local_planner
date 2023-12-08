@@ -65,6 +65,7 @@ controller_server:
       optimization_k_phi: -1.0
       robot_max_vel_x: 0.3
       robot_max_vel_theta: 0.5
+      robot_turn_around_priority: true
       trajectory_global_plan_prune_distance: 1.0
       trajectory_max_global_plan_lookahead_dist: 3.0
       trajectory_global_plan_viapoint_sep: 0.5
