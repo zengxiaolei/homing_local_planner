@@ -16,6 +16,9 @@ HomingLocalPlanner:
   acc_lim_x: 0.2
   acc_lim_theta: 0.5
   turn_around_priority: True
+  stop_dist: 0.5
+  dec_dist: 1.0
+  
 
   # GoalTolerance
 
@@ -27,9 +30,3 @@ HomingLocalPlanner:
   k_rho: 1.0
   k_alpha: -3.0
   k_phi: -1.0
-
-  footprint_model: # types:"circular", "polygon"
-    # type: "polygon"
-    # vertices: [[0.3, 0.2], [0.3, -0.2], [-0.3, -0.2], [-0.3, 0.2]] # for type "polygon"
-    type: "circular"
-    radius: 0.2 # for type "circular"

@@ -4,7 +4,7 @@
 
 The homing_local_planner package implements a plug-in to the *nav_core::BaseLocalPlanner* of the 2D navigation stack in ROS1 or a plug-in to the *nav2_core::Controller* of the  Nav2 in ROS2. The underlying method called Homing Control has the objective to guide a robot along a reference path, which is a pure pursuit algorithm Implemented based on [1]  as reference. And code implementation of the package has some reference to [teb_local_planner](http://wiki.ros.org/teb_local_planner).
 
-This scheme considers a dynamic goal pose on the path located some distance ahead of the robots current pose. The robot is supposed to chase the moving goal pose (look-ahead pose) on the path. This path tracking strategy is similar to human drivers that steer a vehicle towards a dynamic lookahead point on the road, which distance depends on the vehicle speed, road curvature and visibility. 
+This scheme considers a dynamic goal pose on the path located some distance ahead of the robots current pose. The robot is supposed to chase the moving goal pose (look-ahead pose) on the path. This path tracking strategy is similar to human drivers that steer a vehicle towards a dynamic lookahead point on the road, which distance depends on the vehicle speed, road curvature and visibility. The obstacle avoidance feature is currently not designed to allow for detours and exploration. When an obstacle appears on its planned path, the robot slows down or stops until the obstacle is cleared, just like a rail vehicle.
 
 
 
@@ -57,6 +57,10 @@ Dyamic gif demo is as following.
 
 If there's a problem with display, you can check file path: /README_img/homing_demo.gif
 
+- Parking:
+
+![homing_demo](./README_img/parking_demo.gif)
+
 - Forward navigation:
 
 ![homing_demo](./README_img/homing_demo.gif)
@@ -74,6 +78,9 @@ Robot:
 - **acc_lim_x**: maximum translational acceleration of the robot
 - **acc_lim_theta**: maximum angular acceleration of the robot
 - **turn_around_priority**: if true, the robot preferentially adjusts the orientation to fit the direction of the path
+- **stop_dist**: When the Euclidean distance between the nearest lethal point on planned path and the robot frame origin is less than this distance, the robot stops
+- **dec_dist**:  When the Euclidean distance between the nearest lethal point on planned path and the robot frame origin is less than this distance, the robot slows down
+            
 
 Trajectory:
 

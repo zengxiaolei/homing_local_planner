@@ -65,9 +65,6 @@ namespace homing_local_planner
             cfg_.loadRosParamFromNodeHandle(nh);
             obstacles_.reserve(500);
 
-            // create robot footprint/contour model for optimization
-            robot_model_ = getRobotFootprintFromParamServer(nh);
-
             tf_ = tf;
             costmap_ros_ = costmap_ros;
             costmap_ = costmap_ros_->getCostmap();
@@ -154,17 +151,9 @@ namespace homing_local_planner
 
         obstacles_.clear();
         updateObstacleContainerWithCostmap();
-        checkCollision(transformed_plan, 1);
+        double lethal_distance = checkCollision(transformed_plan, cfg_.trajectory.max_global_plan_lookahead_dist);
+        dec_ratio_ = std::min(lethal_distance / cfg_.robot.dec_dist, 1.0);
 
-        // homingcontrol2
-        /*
-        double v, omega;
-        homingControl2(dx,dy,tf2::getYaw(robot_pose_.pose.orientation),  goal_th,v,omega);
-        cmd_vel.linear.x =v;
-        cmd_vel.angular.z = omega;
-        */
-
-        // homing control rst
         Eigen::Quaterniond quat_world_robot(robot_pose_.pose.orientation.w, robot_pose_.pose.orientation.x,
                                             robot_pose_.pose.orientation.y, robot_pose_.pose.orientation.z);
         Eigen::Matrix3d rot_mat_world_robot = quat_world_robot.toRotationMatrix();
@@ -190,10 +179,7 @@ namespace homing_local_planner
         poseError(dx1, dy1, dyaw1, rho, alpha, phi);
         homingControl(rho, alpha, phi, v, omega);
         cmd_vel.linear.x = v;
-        if (0)
-            cmd_vel.angular.z = omega_filter_.filterCall(ros::Time::now(), omega);
-        else
-            cmd_vel.angular.z = omega;
+        cmd_vel.angular.z = omega;
 
         double d_atan = std::atan2(dy1, dx1);
         double d_atan_phi = fabs(d_atan - phi);
@@ -205,12 +191,18 @@ namespace homing_local_planner
             cmd_vel.angular.z = clip(phi, cfg_.robot.max_vel_theta * (-1.0), cfg_.robot.max_vel_theta);
         }
 
+        if (lethal_distance < cfg_.robot.stop_dist)
+        {
+            cmd_vel.linear.x = 0;
+            cmd_vel.angular.z = 0;
+        }
+
         last_cmd_ = cmd_vel;
         visualization_->publishViaPoints(via_points_);
-        visualization_->publishViaPoints(collision_points_, "CollsionPoints");
+        visualization_->publishViaPoints(collision_points_, "CollsionPoints", visualization_->toColorMsg(1.0, 1.0, 0.65, 0.0));
         visualization_->publishLocalPlan(local_plan_);
         visualization_->publishObstacles(obstacles_, costmap_->getResolution());
-        visualization_->publishRobotFootprintModel(robot_pose_se2_, *robot_model_);
+
         return true;
     }
 
@@ -355,50 +347,39 @@ namespace homing_local_planner
             prev_idx = i;
         }
     }
-    bool HomingLocalPlanner::checkCollision(const std::vector<geometry_msgs::PoseStamped> &transformed_plan, double obst_dist)
-    {
-        collision_points_.clear();
-        for (const ObstaclePtr &obst : obstacles_)
-        {
-            double dist = robot_model_->calculateDistance(robot_pose_se2_, obst.get());
-        }
 
-        std::size_t prev_idx = 0;
+    double HomingLocalPlanner::checkCollision(const std::vector<geometry_msgs::PoseStamped> &transformed_plan, double check_dist)
+    {
+
+        collision_points_.clear();
         double path_point_yaw;
-        for (std::size_t i = 1; i < transformed_plan.size(); ++i)
+        double plan_length = 0;
+        double lethal_point_distance = 999;
+        std::size_t i = 1;
+        while (i < transformed_plan.size() && plan_length < check_dist)
         {
-            path_point_yaw = std::atan2(transformed_plan[i].pose.position.y - transformed_plan[prev_idx].pose.position.y,
-                                        transformed_plan[i].pose.position.x - transformed_plan[prev_idx].pose.position.x);
-            PoseSE2 plan_se2 = PoseSE2(transformed_plan[i].pose.position.x, transformed_plan[i].pose.position.y, path_point_yaw);
+            path_point_yaw = std::atan2(transformed_plan[i].pose.position.y - transformed_plan[i - 1].pose.position.y,
+                                        transformed_plan[i].pose.position.x - transformed_plan[i - 1].pose.position.x);
             double footprint_cost = world_model_->footprintCost(transformed_plan[i].pose.position.x,
-                                                                transformed_plan[i].pose.position.y, path_point_yaw, costmap_ros_->getUnpaddedRobotFootprint());
+                                                                transformed_plan[i].pose.position.y, path_point_yaw, costmap_ros_->getRobotFootprint());
+
+            plan_length += distance_points2d(transformed_plan[i].pose.position, transformed_plan[i - 1].pose.position);
             if (footprint_cost == -1)
             {
                 collision_points_.push_back(Eigen::Vector3d(transformed_plan[i].pose.position.x, transformed_plan[i].pose.position.y, path_point_yaw));
+
+                if (plan_length < lethal_point_distance)
+                {
+                    lethal_point_distance = plan_length;
+                    // double dist =  distance_point_to_polygon_2d(const Eigen::Vector2d &point, const Point2dContainer &vertices)
+                    // boost::make_shared<PointObstacle>(transformed_plan[i].pose.position.x, transformed_plan[i].pose.position.y);
+                }
             }
 
-            /*
-            for (const ObstaclePtr &obst : obstacles_)
-            {
-                double dist = robot_model_->calculateDistance(plan_se2, obst.get());
-                // if (dist < 0.5)
-                //     std::cout << "dist: " << dist << std::endl;
-
-                costmap_2d::transformFootprint(transformed_plan[i].pose.position.x,
-                                               transformed_plan[i].pose.position.y,
-                                               path_point_yaw,
-                                               costmap_ros_->getUnpaddedRobotFootprint(), transformed_footprint_);
-
-                geometry_msgs::Point32 point;
-                point.x = obst->getCentroid()[0];
-                point.y = obst->getCentroid()[1];
-                point.z = 0.0;
-                // base_local_planner::PointGrid::ptInPolygon(point, transformed_footprint_);
-            }
-            */
+            i++;
         }
 
-        return true;
+        return lethal_point_distance;
     }
 
     double HomingLocalPlanner::clip(double value, double lower, double upper)
@@ -446,9 +427,10 @@ namespace homing_local_planner
         }
         else
             last_back_ = false;
-        v = clip(v, cfg_.robot.max_vel_x * (-1.0), cfg_.robot.max_vel_x);
+        v = clip(v, cfg_.robot.max_vel_x * (-1.0) * dec_ratio_, cfg_.robot.max_vel_x * dec_ratio_);
+
         omega = cfg_.optimization.k_alpha * alpha + cfg_.optimization.k_phi * phi;
-        omega = clip(omega, cfg_.robot.max_vel_theta * (-1.0), cfg_.robot.max_vel_theta);
+        omega = clip(omega, cfg_.robot.max_vel_theta * (-1.0) * dec_ratio_, cfg_.robot.max_vel_theta * dec_ratio_);
     }
 
     void HomingLocalPlanner::homingControl2(double dx, double dy, double yaw, double yaw_goal, double &v, double &omega)
@@ -521,121 +503,6 @@ namespace homing_local_planner
                 }
             }
         }
-    }
-
-    RobotFootprintModelPtr HomingLocalPlanner::getRobotFootprintFromParamServer(const ros::NodeHandle &nh)
-    {
-        std::string model_name;
-        if (!nh.getParam("footprint_model/type", model_name))
-        {
-            ROS_INFO("No robot footprint model specified for trajectory optimization. Using point-shaped model.");
-            return boost::make_shared<PointRobotFootprint>();
-        }
-
-        // circular
-        if (model_name.compare("circular") == 0)
-        {
-            // get radius
-            double radius;
-            if (!nh.getParam("footprint_model/radius", radius))
-            {
-                ROS_ERROR_STREAM("Footprint model 'circular' cannot be loaded for trajectory optimization, since param '" << nh.getNamespace()
-                                                                                                                          << "/footprint_model/radius' does not exist. Using point-model instead.");
-                return boost::make_shared<PointRobotFootprint>();
-            }
-            ROS_INFO_STREAM("Footprint model 'circular' (radius: " << radius << "m) loaded for trajectory optimization.");
-            return boost::make_shared<CircularRobotFootprint>(radius);
-        }
-
-        // polygon
-        if (model_name.compare("polygon") == 0)
-        {
-
-            // check parameters
-            XmlRpc::XmlRpcValue footprint_xmlrpc;
-            if (!nh.getParam("footprint_model/vertices", footprint_xmlrpc))
-            {
-                ROS_ERROR_STREAM("Footprint model 'polygon' cannot be loaded for trajectory optimization, since param '" << nh.getNamespace()
-                                                                                                                         << "/footprint_model/vertices' does not exist. Using point-model instead.");
-                return boost::make_shared<PointRobotFootprint>();
-            }
-            // get vertices
-            if (footprint_xmlrpc.getType() == XmlRpc::XmlRpcValue::TypeArray)
-            {
-                try
-                {
-                    Point2dContainer polygon = makeFootprintFromXMLRPC(footprint_xmlrpc, "/footprint_model/vertices");
-                    ROS_INFO_STREAM("Footprint model 'polygon' loaded for trajectory optimization.");
-                    return boost::make_shared<PolygonRobotFootprint>(polygon);
-                }
-                catch (const std::exception &ex)
-                {
-                    ROS_ERROR_STREAM("Footprint model 'polygon' cannot be loaded for trajectory optimization: " << ex.what() << ". Using point-model instead.");
-                    return boost::make_shared<PointRobotFootprint>();
-                }
-            }
-            else
-            {
-                ROS_ERROR_STREAM("Footprint model 'polygon' cannot be loaded for trajectory optimization, since param '" << nh.getNamespace()
-                                                                                                                         << "/footprint_model/vertices' does not define an array of coordinates. Using point-model instead.");
-                return boost::make_shared<PointRobotFootprint>();
-            }
-        }
-
-        // otherwise
-        ROS_WARN_STREAM("Unknown robot footprint model specified with parameter '" << nh.getNamespace() << "/footprint_model/type'. Using point model instead.");
-        return boost::make_shared<PointRobotFootprint>();
-    }
-
-    Point2dContainer HomingLocalPlanner::makeFootprintFromXMLRPC(XmlRpc::XmlRpcValue &footprint_xmlrpc, const std::string &full_param_name)
-    {
-        // Make sure we have an array of at least 3 elements.
-        if (footprint_xmlrpc.getType() != XmlRpc::XmlRpcValue::TypeArray ||
-            footprint_xmlrpc.size() < 3)
-        {
-            ROS_FATAL("The footprint must be specified as list of lists on the parameter server, %s was specified as %s",
-                      full_param_name.c_str(), std::string(footprint_xmlrpc).c_str());
-            throw std::runtime_error("The footprint must be specified as list of lists on the parameter server with at least "
-                                     "3 points eg: [[x1, y1], [x2, y2], ..., [xn, yn]]");
-        }
-
-        Point2dContainer footprint;
-        Eigen::Vector2d pt;
-
-        for (int i = 0; i < footprint_xmlrpc.size(); ++i)
-        {
-            // Make sure each element of the list is an array of size 2. (x and y coordinates)
-            XmlRpc::XmlRpcValue point = footprint_xmlrpc[i];
-            if (point.getType() != XmlRpc::XmlRpcValue::TypeArray ||
-                point.size() != 2)
-            {
-                ROS_FATAL("The footprint (parameter %s) must be specified as list of lists on the parameter server eg: "
-                          "[[x1, y1], [x2, y2], ..., [xn, yn]], but this spec is not of that form.",
-                          full_param_name.c_str());
-                throw std::runtime_error("The footprint must be specified as list of lists on the parameter server eg: "
-                                         "[[x1, y1], [x2, y2], ..., [xn, yn]], but this spec is not of that form");
-            }
-
-            pt.x() = getNumberFromXMLRPC(point[0], full_param_name);
-            pt.y() = getNumberFromXMLRPC(point[1], full_param_name);
-
-            footprint.push_back(pt);
-        }
-        return footprint;
-    }
-
-    double HomingLocalPlanner::getNumberFromXMLRPC(XmlRpc::XmlRpcValue &value, const std::string &full_param_name)
-    {
-        // Make sure that the value we're looking at is either a double or an int.
-        if (value.getType() != XmlRpc::XmlRpcValue::TypeInt &&
-            value.getType() != XmlRpc::XmlRpcValue::TypeDouble)
-        {
-            std::string &value_string = value;
-            ROS_FATAL("Values in the footprint specification (param %s) must be numbers. Found value %s.",
-                      full_param_name.c_str(), value_string.c_str());
-            throw std::runtime_error("Values in the footprint specification must be numbers");
-        }
-        return value.getType() == XmlRpc::XmlRpcValue::TypeInt ? (int)(value) : (double)(value);
     }
 
     bool HomingLocalPlanner::transformGlobalPlan(const tf2_ros::Buffer &tf, const std::vector<geometry_msgs::PoseStamped> &global_plan,

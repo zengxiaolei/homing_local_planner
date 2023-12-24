@@ -59,7 +59,7 @@ namespace homing_local_planner
         initialized_ = true;
     }
     void HomingVisualization::publishViaPoints(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &via_points,
-                                               const std::string &ns) const
+                                               const std::string &ns, const std_msgs::ColorRGBA &color) const
     {
         if (via_points.empty() || printErrorWhenNotInitialized())
             return;
@@ -84,10 +84,7 @@ namespace homing_local_planner
 
         marker.scale.x = 0.1;
         marker.scale.y = 0.1;
-        marker.color.a = 1.0;
-        marker.color.r = 0.0;
-        marker.color.g = 0.0;
-        marker.color.b = 1.0;
+        marker.color = color;
 
         homing_marker_pub_.publish(marker);
     }
@@ -156,32 +153,6 @@ namespace homing_local_planner
             marker.color.b = 0.0;
 
             homing_marker_pub_.publish(marker);
-        }
-    }
-
-    void HomingVisualization::publishRobotFootprintModel(const PoseSE2 &current_pose, const BaseRobotFootprintModel &robot_model,
-                                                         const std::string &ns, const std_msgs::ColorRGBA &color)
-    {
-        if (printErrorWhenNotInitialized())
-            return;
-
-        std::vector<visualization_msgs::Marker> markers;
-        robot_model.visualizeRobot(current_pose, markers, color);
-        if (markers.empty())
-            return;
-
-        int idx = 0;
-        for (std::vector<visualization_msgs::Marker>::iterator marker_it = markers.begin(); marker_it != markers.end(); ++marker_it, ++idx)
-        {
-            marker_it->header.frame_id = frame_id_;
-            marker_it->header.stamp = ros::Time::now();
-            marker_it->action = visualization_msgs::Marker::ADD;
-            marker_it->ns = "RobotFootprintModel";
-            marker_it->id = idx;
-            marker_it->lifetime = ros::Duration(2.0);
-            marker_it->scale.x = 0.1;
-            marker_it->scale.y = 0.1;
-            homing_marker_pub_.publish(*marker_it);
         }
     }
 

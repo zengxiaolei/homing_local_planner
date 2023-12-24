@@ -68,7 +68,6 @@
 #include <homing_local_planner/one_euro_filter.h>
 #include <homing_local_planner/obstacles.h>
 #include <homing_local_planner/pose_se2.h>
-#include <homing_local_planner/robot_footprint_model.h>
 
 namespace homing_local_planner
 {
@@ -88,12 +87,6 @@ namespace homing_local_planner
 
         bool isGoalReached();
 
-        static RobotFootprintModelPtr getRobotFootprintFromParamServer(const ros::NodeHandle &nh);
-
-        static Point2dContainer makeFootprintFromXMLRPC(XmlRpc::XmlRpcValue &footprint_xmlrpc, const std::string &full_param_name);
-
-        static double getNumberFromXMLRPC(XmlRpc::XmlRpcValue &value, const std::string &full_param_name);
-
     protected:
         template <typename P1, typename P2>
 
@@ -108,6 +101,11 @@ namespace homing_local_planner
         void smoothPlan2d(std::vector<geometry_msgs::PoseStamped> &global_plan);
 
         void simplifyGlobalPlan(std::vector<geometry_msgs::PoseStamped> &plan, double simplify_separation);
+
+        bool transformGlobalPlan(const tf2_ros::Buffer &tf, const std::vector<geometry_msgs::PoseStamped> &global_plan,
+                                 const geometry_msgs::PoseStamped &global_pose, const costmap_2d::Costmap2D &costmap,
+                                 const std::string &global_frame, double max_plan_length, std::vector<geometry_msgs::PoseStamped> &transformed_plan,
+                                 int *current_goal_idx = NULL, geometry_msgs::TransformStamped *tf_plan_to_global = NULL) const;
 
         void updateViaPointsContainer(const std::vector<geometry_msgs::PoseStamped> &transformed_plan,
                                       double min_separation_via, double min_separation_goal);
@@ -130,12 +128,7 @@ namespace homing_local_planner
 
         void updateObstacleContainerWithCostmap();
 
-        bool checkCollision(const std::vector<geometry_msgs::PoseStamped> &transformed_plan, double obst_dist);
-
-        bool transformGlobalPlan(const tf2_ros::Buffer &tf, const std::vector<geometry_msgs::PoseStamped> &global_plan,
-                                 const geometry_msgs::PoseStamped &global_pose, const costmap_2d::Costmap2D &costmap,
-                                 const std::string &global_frame, double max_plan_length, std::vector<geometry_msgs::PoseStamped> &transformed_plan,
-                                 int *current_goal_idx = NULL, geometry_msgs::TransformStamped *tf_plan_to_global = NULL) const;
+        double checkCollision(const std::vector<geometry_msgs::PoseStamped> &transformed_plan, double check_dist);
 
     private:
         costmap_2d::Costmap2DROS *costmap_ros_;
@@ -146,6 +139,7 @@ namespace homing_local_planner
         bool goal_reached_;
         double xy_reached_ = false;
         bool last_back_ = false;
+        double dec_ratio_;
 
         std::string global_frame_;     //!< The frame in which the controller will run
         std::string robot_base_frame_; //!< Used as the base frame id of the robot
@@ -161,7 +155,6 @@ namespace homing_local_planner
         HomingVisualizationPtr visualization_;
         HomingConfig cfg_;
         ObstContainer obstacles_;
-        RobotFootprintModelPtr robot_model_;
         base_local_planner::WorldModel *world_model_;
         boost::shared_ptr<dynamic_reconfigure::Server<HomingLocalPlannerReconfigureConfig>> dynamic_recfg_; //!< Dynamic reconfigure server to allow config modifications at runtime
         OneEuroFilter omega_filter_ = OneEuroFilter(ros::Time::now(), 0.0, 0.0, 1.0, 0.3, 1.0);
