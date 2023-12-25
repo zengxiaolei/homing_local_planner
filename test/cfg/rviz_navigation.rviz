@@ -6,7 +6,6 @@ Panels:
       Expanded:
         - /TF1/Frames1
         - /TF1/Tree1
-        - /Controller1/Local Costmap1
       Splitter Ratio: 0.5833333134651184
     Tree Height: 409
   - Class: rviz_common/Selection
@@ -322,7 +321,7 @@ Visualization Manager:
           Enabled: true
           Name: Homing Marker
           Namespaces:
-            ViaPoints: true
+            {}
           Topic:
             Depth: 5
             Durability Policy: Volatile

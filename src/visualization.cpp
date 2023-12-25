@@ -55,7 +55,7 @@ namespace homing_local_planner
     }
 
     void HomingVisualization::publishViaPoints(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &via_points,
-                                               const std::string &ns) const
+                                               const std::string &ns, const std_msgs::msg::ColorRGBA &color) const
     {
         if (via_points.empty())
             return;
@@ -80,10 +80,7 @@ namespace homing_local_planner
 
         marker.scale.x = 0.1;
         marker.scale.y = 0.1;
-        marker.color.a = 1.0;
-        marker.color.r = 0.0;
-        marker.color.g = 0.0;
-        marker.color.b = 1.0;
+        marker.color = color;
 
         homing_marker_pub_->publish(marker);
     }
@@ -155,16 +152,14 @@ namespace homing_local_planner
     }
     */
 
-    /*
-    std_msgs::ColorRGBA HomingVisualization::toColorMsg(double a, double r, double g, double b)
+    std_msgs::msg::ColorRGBA HomingVisualization::toColorMsg(double a, double r, double g, double b)
     {
-        std_msgs::ColorRGBA color;
+        std_msgs::msg::ColorRGBA color;
         color.a = a;
         color.r = r;
         color.g = g;
         color.b = b;
         return color;
     }
-    */
 
 }

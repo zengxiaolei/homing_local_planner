@@ -39,13 +39,13 @@ namespace homing_local_planner
         void deactivate();
         void cleanup();
         void publishViaPoints(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &via_points,
-                              const std::string &ns = "ViaPoints") const;
+                              const std::string &ns = "ViaPoints", const std_msgs::msg::ColorRGBA &color = toColorMsg(1.0, 0.0, 0.0, 1.0)) const;
         void publishLocalPlan(const nav_msgs::msg::Path &local_plan) const;
         void publishGlobalPlan(const nav_msgs::msg::Path &global_plan) const;
         void publishGlobalPlan(const std::vector<geometry_msgs::msg::PoseStamped> &global_plan, std::string frame_id) const;
 
         // void publishObstacles(const ObstContainer &obstacles, double scale = 0.1) const;
-        // static std_msgs::ColorRGBA toColorMsg(double a, double r, double g, double b);
+        static std_msgs::msg::ColorRGBA toColorMsg(double a, double r, double g, double b);
 
     protected:
         bool initialized_;

@@ -66,6 +66,8 @@ controller_server:
       robot_max_vel_x: 0.3
       robot_max_vel_theta: 0.5
       robot_turn_around_priority: true
+      robot_stop_dist: 0.5
+      robot_dec_dist: 1.0
       trajectory_global_plan_prune_distance: 1.0
       trajectory_max_global_plan_lookahead_dist: 3.0
       trajectory_global_plan_viapoint_sep: 0.5
@@ -89,7 +91,7 @@ local_costmap:
       width: 6
       height: 6
       resolution: 0.05
-      robot_radius: 0.22
+      robot_radius: 0.25
       plugins: ["voxel_layer", "inflation_layer"]
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"

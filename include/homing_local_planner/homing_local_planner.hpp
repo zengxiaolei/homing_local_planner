@@ -19,6 +19,7 @@
 #include "eigen3/Eigen/Dense"
 
 #include "nav2_core/controller.hpp"
+#include "nav2_costmap_2d/footprint_collision_checker.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "pluginlib/class_loader.hpp"
 #include "pluginlib/class_list_macros.hpp"
@@ -92,6 +93,8 @@ namespace homing_local_planner
 
         Eigen::Vector3d R2ypr(const Eigen::Matrix3d &R);
 
+        double checkCollision(const std::vector<geometry_msgs::msg::PoseStamped> &transformed_plan, double check_dist);
+
     private:
         std::string plugin_name_;
         std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros_;
@@ -103,6 +106,7 @@ namespace homing_local_planner
         double xy_reached_ = false;
         bool last_back_ = false;
         // double control_duration_;
+        double dec_ratio_;
 
         std::string global_frame_;     //!< The frame in which the controller will run
         std::string robot_base_frame_; //!< Used as the base frame id of the robot
@@ -112,10 +116,12 @@ namespace homing_local_planner
         std::vector<geometry_msgs::msg::Point> transformed_footprint_;
         std::vector<geometry_msgs::msg::PoseStamped> global_plan_vec_;
         std::vector<geometry_msgs::msg::PoseStamped> local_plan_vec_;
-        std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> via_points_vec_;
+        std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> via_points_vec_, collision_points_;
 
         nav_msgs::msg::Path global_plan_, local_plan_;
         HomingVisualizationPtr visualization_;
+
+        nav2_costmap_2d::FootprintCollisionChecker<nav2_costmap_2d::Costmap2D *> collision_checker_;
 
         double optimization_k_alpha_;
         double optimization_k_rho_;
@@ -124,8 +130,8 @@ namespace homing_local_planner
         double robot_max_vel_x_;
         double robot_max_vel_theta_;
         bool robot_turn_around_priority_;
-        // double robot_max_acc_theta_;
-        // double robot_min_turning_raduis_;
+        double robot_stop_dist_;
+        double robot_dec_dist_;
 
         double trajectory_global_plan_prune_distance_;
         double trajectory_max_global_plan_lookahead_dist_;

@@ -29,6 +29,7 @@ namespace homing_local_planner
         tf_ = tf;
         costmap_ros_ = costmap_ros;
         costmap_ = costmap_ros_->getCostmap();
+
         plugin_name_ = name;
         logger_ = node->get_logger();
         global_frame_ = costmap_ros_->getGlobalFrameID();
@@ -51,10 +52,10 @@ namespace homing_local_planner
             node, plugin_name_ + ".robot_max_vel_theta", rclcpp::ParameterValue(0.4));
         nav2_util::declare_parameter_if_not_declared(
             node, plugin_name_ + ".robot_turn_around_priority", rclcpp::ParameterValue(true));
-        // nav2_util::declare_parameter_if_not_declared(
-        //     node, plugin_name_ + ".robot_max_acc_theta", rclcpp::ParameterValue(3.0));
-        // nav2_util::declare_parameter_if_not_declared(
-        //     node, plugin_name_ + ".robot_min_turning_raduis", rclcpp::ParameterValue(0.0));
+        nav2_util::declare_parameter_if_not_declared(
+            node, plugin_name_ + ".robot_stop_dist", rclcpp::ParameterValue(0.5));
+        nav2_util::declare_parameter_if_not_declared(
+            node, plugin_name_ + ".robot_dec_dist", rclcpp::ParameterValue(1.0));
 
         nav2_util::declare_parameter_if_not_declared(
             node, plugin_name_ + ".trajectory_global_plan_prune_distance", rclcpp::ParameterValue(1.0));
@@ -77,8 +78,8 @@ namespace homing_local_planner
         node->get_parameter(plugin_name_ + ".robot_max_vel_x", robot_max_vel_x_);
         node->get_parameter(plugin_name_ + ".robot_max_vel_theta", robot_max_vel_theta_);
         node->get_parameter(plugin_name_ + ".robot_turn_around_priority", robot_turn_around_priority_);
-        // node->get_parameter(plugin_name_ + ".robot_max_acc_theta", robot_max_acc_theta_);
-        // node->get_parameter(plugin_name_ + ".robot_min_turning_raduis", robot_min_turning_raduis_);
+        node->get_parameter(plugin_name_ + ".robot_stop_dist", robot_stop_dist_);
+        node->get_parameter(plugin_name_ + ".robot_dec_dist", robot_dec_dist_);
 
         node->get_parameter(plugin_name_ + ".trajectory_global_plan_prune_distance", trajectory_global_plan_prune_distance_);
         node->get_parameter(plugin_name_ + ".trajectory_max_global_plan_lookahead_dist", trajectory_max_global_plan_lookahead_dist_);
@@ -168,8 +169,10 @@ namespace homing_local_planner
                                  trajectory_global_plan_viapoint_sep_, trajectory_global_plan_goal_sep_);
         via_points_vec_.push_back(Eigen::Vector3d(goal_x, goal_y, goal_th));
 
-        visualization_->publishViaPoints(via_points_vec_);
         local_plan_vec_.push_back(transformed_plan.back());
+
+        double lethal_distance = checkCollision(transformed_plan, trajectory_max_global_plan_lookahead_dist_);
+        dec_ratio_ = std::min(lethal_distance / robot_dec_dist_, 1.0);
 
         Eigen::Quaterniond quat_world_robot(robot_pose_.pose.orientation.w, robot_pose_.pose.orientation.x,
                                             robot_pose_.pose.orientation.y, robot_pose_.pose.orientation.z);
@@ -205,10 +208,17 @@ namespace homing_local_planner
             v = 0;
             omega = clip(phi, robot_max_vel_theta_ * (-1.0), robot_max_vel_theta_);
         }
-
         cmd_vel.twist.linear.x = v;
         cmd_vel.twist.angular.z = omega;
 
+        if (lethal_distance < robot_stop_dist_)
+        {
+            cmd_vel.twist.linear.x = 0;
+            cmd_vel.twist.angular.z = 0;
+        }
+
+        visualization_->publishViaPoints(via_points_vec_);
+        visualization_->publishViaPoints(collision_points_, "CollsionPoints", visualization_->toColorMsg(1.0, 1.0, 0.65, 0.0));
         local_plan_.poses = local_plan_vec_;
         local_plan_.header.frame_id = global_plan_.header.frame_id;
         local_plan_.header.stamp = rclcpp::Time();
@@ -499,9 +509,9 @@ namespace homing_local_planner
         }
         else
             last_back_ = false;
-        v = clip(v, robot_max_vel_x_ * (-1.0), robot_max_vel_x_);
+        v = clip(v, robot_max_vel_x_ * (-1.0) * dec_ratio_, robot_max_vel_x_ * dec_ratio_);
         omega = optimization_k_alpha_ * alpha + optimization_k_phi_ * phi;
-        omega = clip(omega, robot_max_vel_theta_ * (-1.0), robot_max_vel_theta_);
+        omega = clip(omega, robot_max_vel_theta_ * (-1.0) * dec_ratio_, robot_max_vel_theta_ * dec_ratio_);
     }
 
     void HomingLocalPlanner::homingControl2(double dx, double dy, double yaw, double yaw_goal, double &v, double &omega)
@@ -539,6 +549,36 @@ namespace homing_local_planner
         ypr(1) = p;
         ypr(2) = r;
         return ypr;
+    }
+
+    double HomingLocalPlanner::checkCollision(const std::vector<geometry_msgs::msg::PoseStamped> &transformed_plan, double check_dist)
+    {
+        collision_points_.clear();
+        collision_checker_.setCostmap(costmap_);
+        double path_point_yaw;
+        double plan_length = 0;
+        double lethal_point_distance = 999;
+        std::size_t i = 1;
+        while (i < transformed_plan.size() && plan_length < check_dist)
+        {
+            path_point_yaw = std::atan2(transformed_plan[i].pose.position.y - transformed_plan[i - 1].pose.position.y,
+                                        transformed_plan[i].pose.position.x - transformed_plan[i - 1].pose.position.x);
+            double footprint_cost = collision_checker_.footprintCostAtPose(transformed_plan[i].pose.position.x,
+                                                                           transformed_plan[i].pose.position.y, path_point_yaw, costmap_ros_->getRobotFootprint());
+            plan_length += distance_points2d(transformed_plan[i].pose.position, transformed_plan[i - 1].pose.position);
+            if (footprint_cost == 254) // 253
+            {
+                collision_points_.push_back(Eigen::Vector3d(transformed_plan[i].pose.position.x, transformed_plan[i].pose.position.y, path_point_yaw));
+                if (plan_length < lethal_point_distance)
+                {
+                    lethal_point_distance = plan_length;
+                    // double dist =  distance_point_to_polygon_2d(const Eigen::Vector2d &point, const Point2dContainer &vertices)
+                    // boost::make_shared<PointObstacle>(transformed_plan[i].pose.position.x, transformed_plan[i].pose.position.y);
+                }
+            }
+            i++;
+        }
+        return lethal_point_distance;
     }
 
 }
