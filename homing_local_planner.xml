@@ -1,0 +1,9 @@
+<class_libraries>
+    <library path="homing_local_planner">
+        <class type="homing_local_planner::HomingLocalPlanner" base_class_type="nav2_core::Controller">
+            <description>
+                homing_local_planner
+            </description>
+        </class>
+    </library>
+</class_libraries>
