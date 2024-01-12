@@ -47,6 +47,7 @@ namespace homing_local_planner
         nh.param("max_vel_theta", robot.max_vel_theta, robot.max_vel_theta);
         nh.param("acc_lim_x", robot.acc_lim_x, robot.acc_lim_x);
         nh.param("acc_lim_theta", robot.acc_lim_theta, robot.acc_lim_theta);
+        nh.param("min_turn_radius", robot.min_turn_radius, robot.min_turn_radius);
         nh.param("turn_around_priority", robot.turn_around_priority, robot.turn_around_priority);
         nh.param("stop_dist", robot.stop_dist, robot.stop_dist);
         nh.param("dec_dist", robot.dec_dist, robot.dec_dist);
@@ -76,6 +77,7 @@ namespace homing_local_planner
         robot.max_vel_theta = cfg.max_vel_theta;
         robot.acc_lim_x = cfg.acc_lim_x;
         robot.acc_lim_theta = cfg.acc_lim_theta;
+        robot.min_turn_radius = cfg.min_turn_radius;
         robot.turn_around_priority = cfg.turn_around_priority;
         robot.stop_dist = cfg.stop_dist;
         robot.dec_dist = cfg.dec_dist;

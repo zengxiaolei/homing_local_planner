@@ -178,24 +178,33 @@ namespace homing_local_planner
         double rho, alpha, phi, v, omega;
         poseError(dx1, dy1, dyaw1, rho, alpha, phi);
         homingControl(rho, alpha, phi, v, omega);
-        cmd_vel.linear.x = v;
-        cmd_vel.angular.z = omega;
 
-        double d_atan = std::atan2(dy1, dx1);
-        double d_atan_phi = fabs(d_atan - phi);
-        if ((xy_reached_) or
-            (cfg_.robot.turn_around_priority and fabs(phi) > 0.75 and
-             (d_atan_phi < 0.5 or fmod(d_atan_phi, M_PI) < 0.5 or fmod(d_atan_phi, M_PI) > 2.6)))
+        if (cfg_.robot.min_turn_radius > 0)
         {
-            cmd_vel.linear.x = 0;
-            cmd_vel.angular.z = clip(phi, cfg_.robot.max_vel_theta * (-1.0), cfg_.robot.max_vel_theta);
+            double omega_max = fabs(v / cfg_.robot.min_turn_radius);
+            omega = clip(omega, omega_max * (-1.0), omega_max);
+        }
+        else
+        {
+            double d_atan = std::atan2(dy1, dx1);
+            double d_atan_phi = fabs(d_atan - phi);
+            if ((xy_reached_) or
+                (cfg_.robot.turn_around_priority and fabs(phi) > 0.75 and
+                 (d_atan_phi < 0.5 or fmod(d_atan_phi, M_PI) < 0.5 or fmod(d_atan_phi, M_PI) > 2.6)))
+            {
+                v = 0;
+                omega = clip(phi, cfg_.robot.max_vel_theta * (-1.0), cfg_.robot.max_vel_theta);
+            }
         }
 
         if (lethal_distance < cfg_.robot.stop_dist)
         {
-            cmd_vel.linear.x = 0;
-            cmd_vel.angular.z = 0;
+            v = 0;
+            omega = 0;
         }
+
+        cmd_vel.linear.x = v;
+        cmd_vel.angular.z = omega;
 
         last_cmd_ = cmd_vel;
         visualization_->publishViaPoints(via_points_);
@@ -433,28 +442,6 @@ namespace homing_local_planner
         omega = clip(omega, cfg_.robot.max_vel_theta * (-1.0) * dec_ratio_, cfg_.robot.max_vel_theta * dec_ratio_);
     }
 
-    void HomingLocalPlanner::homingControl2(double dx, double dy, double yaw, double yaw_goal, double &v, double &omega)
-    {
-        double rho = std::sqrt(std::pow(dx, 2) + std::pow(dy, 2));
-        double alpha = fmod((std::atan2(dy, dx) - yaw + M_PI), 2.0 * M_PI);
-        if (alpha < 0)
-            alpha += 2 * M_PI;
-        alpha = alpha - M_PI;
-
-        double beta = fmod((yaw_goal - yaw - alpha + M_PI), 2 * M_PI);
-        if (beta < 0)
-            beta += 2 * M_PI;
-        beta = beta - M_PI;
-        // (9, 15, 3) Kp_rho, Kp_alpha, Kp_beta
-        v = 9.0 * rho;
-        omega = 15 * alpha - 3.0 * beta;
-        if (fabs(alpha) > 0.5 * M_PI)
-            v = -1.0 * v;
-
-        v = clip(v, cfg_.robot.max_vel_x * (-1.0), cfg_.robot.max_vel_x);
-        omega = clip(omega, cfg_.robot.max_vel_theta * (-1.0), cfg_.robot.max_vel_theta);
-    }
-
     Eigen::Vector3d HomingLocalPlanner::R2ypr(const Eigen::Matrix3d &R)
     {
         Eigen::Vector3d n = R.col(0);
@@ -566,6 +553,7 @@ namespace homing_local_planner
             {
                 const geometry_msgs::PoseStamped &pose = global_plan[i];
                 tf2::doTransform(pose, newer_pose, plan_to_global_transform);
+                newer_pose.header.frame_id = global_frame;
                 transformed_plan.push_back(newer_pose);
 
                 double x_diff = robot_pose.pose.position.x - global_plan[i].pose.position.x;
@@ -584,6 +572,7 @@ namespace homing_local_planner
             if (transformed_plan.empty())
             {
                 tf2::doTransform(global_plan.back(), newer_pose, plan_to_global_transform);
+                newer_pose.header.frame_id = global_frame;
                 transformed_plan.push_back(newer_pose);
 
                 // Return the index of the current goal point (inside the distance threshold)

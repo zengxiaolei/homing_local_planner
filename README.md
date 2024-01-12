@@ -10,27 +10,83 @@ This scheme considers a dynamic goal pose on the path located some distance ahea
 
 ##  Install 
 
-Git clone this repository  and checkout the corresponding branch, then compile and run.
+Git clone this repository  and checkout the corresponding branch, then compile.
 
 ```shell
+cd ~/your_ws/src
 git clone https://github.com/zengxiaolei/homing_local_planner.git
+cd ..
+colcon_build / catkin_make
 ```
+
+
+
+## Parameter
+
+*Robot*:
+
+- **max_vel_x**: maximum velocity in the x direction of the robot
+- **max_vel_theta**: maximum angular velocity of the robot
+- **acc_lim_x**: maximum translational acceleration of the robot
+- **acc_lim_theta**: maximum angular acceleration of the robot
+- **min_turn_radius**: minimum turning radius of the robot
+- **turn_around_priority**: if true, the robot preferentially adjusts the orientation to fit the direction of the path
+- **stop_dist**: When the Euclidean distance between the nearest lethal point on planned path and the robot frame origin is less than this distance, the robot stops
+- **dec_dist**:  When the Euclidean distance between the nearest lethal point on planned path and the robot frame origin is less than this distance, the robot slows down          
+
+*Trajectory*:
+
+- **max_global_plan_lookahead_dist**: specify maximum length (cumulative Euclidean distances) of the subset of the global plan taken into account for optimization
+- **global_plan_viapoint_sep**: min. separation between each two consecutive via-points extracted from the global plan
+- **global_plan_goal_sep**: min. separation between the last via-point and goal pose
+- **global_plan_prune_distance**: distance between robot and via_points of global plan which is used for pruning
+
+*Goal Tolerance*:
+
+- **yaw_goal_tolerance**:  allowed final orientation(yaw) error
+- **xy_goal_tolerance**: allowed final euclidean distance to the goal position
+
+*Optimization*:
+
+- **k_rho**: proportional parameter for linear velocity adjustment based on the Euclidean distance of the robot position to the current target
+- **k_alpha**: proportional parameter for angular velocity adjustment based on the tangential angle of the target position in the robot's frame of reference
+- **k_phi**: proportional parameter for angular velocity adjustment based on the difference between the robot's orientation(yaw) and the current target orientation(yaw)
 
 
 
 ## Run and Demo
 
-### 2D Simulator
+### 3D Webots Simulator for ROS2 Humble
+
+Firstly make sure the simulation platform is installed.
+
+[webots installtion (ubuntu) in detail](https://docs.ros.org/en/humble/Tutorials/Advanced/Simulators/Webots/Installation-Ubuntu.html)
+
+#### Run
+
+Then you can launch it easily by following command:
+
+```shell
+ros2 launch homing_local_planner robot_launch.py 
+```
+
+#### Demo
+
+The launchecd world is as follows:
+
+![image-20240106141810081](./.README_img/webots_demo.png)
+
+
+
+### 2D Stage Simulator for ROS1 and ROS2 foxy
 
 There's a complete demo based on 2D stage simulator in this package. Firstly make sure the simulation platform is installed.
 
-- For ROS2: [stage_ros2](https://github.com/n0nzzz/stage_ros2)
+- ROS2: [stage_ros2](https://github.com/n0nzzz/stage_ros2)
 
-- For ROS1:  [stage_ros](https://github.com/ros-simulation/stage_ros)
+- ROS1:  [stage_ros](https://github.com/ros-simulation/stage_ros)
 
-
-
-### Run
+#### Run
 
 Then you can launch it easily by following command:
 
@@ -49,66 +105,26 @@ ros2 launch homing_local_planner demo.launch.py
 roslaunch homing_local_planner demo.launch
 ```
 
-
-
-### Demo
+#### Demo
 
 Dyamic gif demo is as following.
 
-If there's a problem with display, you can check file path: /README_img/homing_demo.gif
+If there's a problem with display, you can check file path: /.README_img/homing_demo.gif
 
 - Parking:
 
-![homing_demo](./README_img/parking_demo.gif)
+![homing_demo](./.README_img/parking_demo.gif)
 
 - Forward navigation:
 
-![homing_demo](./README_img/homing_demo.gif)
+![homing_demo](./.README_img/homing_demo.gif)
 
 - Navigation with direction adjustment and backwards:
 
-![homing_demo_turn](./README_img/homing_turn_demo.gif)
-
-## Parameter
-
-Robot:
-
-- **max_vel_x**: maximum velocity in the x direction of the robot
-- **max_vel_theta**: maximum angular velocity of the robot
-- **acc_lim_x**: maximum translational acceleration of the robot
-- **acc_lim_theta**: maximum angular acceleration of the robot
-- **turn_around_priority**: if true, the robot preferentially adjusts the orientation to fit the direction of the path
-- **stop_dist**: When the Euclidean distance between the nearest lethal point on planned path and the robot frame origin is less than this distance, the robot stops
-- **dec_dist**:  When the Euclidean distance between the nearest lethal point on planned path and the robot frame origin is less than this distance, the robot slows down
-            
-
-Trajectory:
-
-- **max_global_plan_lookahead_dist**: specify maximum length (cumulative Euclidean distances) of the subset of the global plan taken into account for optimization
-- **global_plan_viapoint_sep**: min. separation between each two consecutive via-points extracted from the global plan
-- **global_plan_goal_sep**: min. separation between the last via-point and goal pose
-- **global_plan_prune_distance**: distance between robot and via_points of global plan which is used for pruning
-
-Goal Tolerance:
-
-- **yaw_goal_tolerance**:  allowed final orientation(yaw) error
-- **xy_goal_tolerance**: allowed final euclidean distance to the goal position
-
-Optimization:
-
-- **k_rho**: proportional parameter for linear velocity adjustment based on the Euclidean distance of the robot position to the current target
-- **k_alpha**: proportional parameter for angular velocity adjustment based on the tangential angle of the target position in the robot's frame of reference
-- **k_phi**: proportional parameter for angular velocity adjustment based on the difference between the robot's orientation(yaw) and the current target orientation(yaw)
+![homing_demo_turn](./.README_img/homing_turn_demo.gif)
 
 
 
-## Todo
-
-- The obstacle avoidance function is incomplete and is still under development.
-
-- Support more rosversions
-
-  
 
 ## References
 

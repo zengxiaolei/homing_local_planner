@@ -56,6 +56,7 @@ namespace homing_local_planner
             double max_vel_theta;       //!< Maximum angular velocity of the robot
             double acc_lim_x;           //!< Maximum translational acceleration of the robot
             double acc_lim_theta;       //!< Maximum angular acceleration of the robot
+            double min_turn_radius;     //!< Minimum turning radius of the robot
             bool turn_around_priority;  //!< If true, the robot preferentially adjusts the orientation to fit the direction of the path
             double stop_dist;           //!< When the Euclidean distance between the nearst lethal point on planned path and the robot frame origin is less than this distance, the robot stops
             double dec_dist;            //!< When the Euclidean distance between the nearst lethal point on planned path and the robot frame origin is less than this distance, the robot slows down
@@ -93,6 +94,7 @@ namespace homing_local_planner
             robot.max_vel_theta = 0.5;
             robot.acc_lim_x = 0.2;
             robot.acc_lim_theta = 0.2;
+            robot.min_turn_radius = 0.0;
             robot.turn_around_priority = false;
             robot.stop_dist = 0.5;
             robot.dec_dist = 1.0;

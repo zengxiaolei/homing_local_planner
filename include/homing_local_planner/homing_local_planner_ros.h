@@ -122,8 +122,6 @@ namespace homing_local_planner
 
         void homingControl(double rho, double alpha, double phi, double &v, double &omega);
 
-        void homingControl2(double dx, double dy, double yaw, double yaw_goal, double &v, double &omega);
-
         Eigen::Vector3d R2ypr(const Eigen::Matrix3d &R);
 
         void updateObstacleContainerWithCostmap();
