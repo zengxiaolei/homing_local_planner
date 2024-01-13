@@ -133,10 +133,11 @@ controller_server:
       optimization_k_phi: -1.0
       robot_max_vel_x: 0.15
       robot_max_vel_theta: 0.25
+      robot_min_turn_radius: 0.0
       robot_turn_around_priority: true
       robot_stop_dist: 0.5
       robot_dec_dist: 1.0
-      trajectory_global_plan_prune_distance: 1.0
+      trajectory_global_plan_prune_distance: 0.6
       trajectory_max_global_plan_lookahead_dist: 3.0
       trajectory_global_plan_viapoint_sep: 0.5
       trajectory_global_plan_goal_sep: 1.0

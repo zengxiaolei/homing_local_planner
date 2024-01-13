@@ -133,6 +133,7 @@ namespace homing_local_planner
 
         double robot_max_vel_x_;
         double robot_max_vel_theta_;
+        double robot_min_turn_radius_;
         bool robot_turn_around_priority_;
         double robot_stop_dist_;
         double robot_dec_dist_;

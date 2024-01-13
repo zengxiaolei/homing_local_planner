@@ -29,6 +29,7 @@ colcon_build / catkin_make
 - **max_vel_theta**: maximum angular velocity of the robot
 - **acc_lim_x**: maximum translational acceleration of the robot
 - **acc_lim_theta**: maximum angular acceleration of the robot
+- **min_turn_radius**: minimum turning radius of the robot
 - **turn_around_priority**: if true, the robot preferentially adjusts the orientation to fit the direction of the path
 - **stop_dist**: When the Euclidean distance between the nearest lethal point on planned path and the robot frame origin is less than this distance, the robot stops
 - **dec_dist**:  When the Euclidean distance between the nearest lethal point on planned path and the robot frame origin is less than this distance, the robot slows down          
@@ -73,7 +74,7 @@ ros2 launch homing_local_planner robot_launch.py
 
 The launchecd world is as follows:
 
-![image-20240106141810081](./README_img/webots_demo.png)
+![image-20240106141810081](./.README_img/webots_demo.png)
 
 
 
@@ -108,19 +109,19 @@ roslaunch homing_local_planner demo.launch
 
 Dyamic gif demo is as following.
 
-If there's a problem with display, you can check file path: /README_img/homing_demo.gif
+If there's a problem with display, you can check file path: /.README_img/homing_demo.gif
 
 - Parking:
 
-![homing_demo](./README_img/parking_demo.gif)
+![homing_demo](./.README_img/parking_demo.gif)
 
 - Forward navigation:
 
-![homing_demo](./README_img/homing_demo.gif)
+![homing_demo](./.README_img/homing_demo.gif)
 
 - Navigation with direction adjustment and backwards:
 
-![homing_demo_turn](./README_img/homing_turn_demo.gif)
+![homing_demo_turn](./.README_img/homing_turn_demo.gif)
 
 
 
