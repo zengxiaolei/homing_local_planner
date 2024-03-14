@@ -51,6 +51,8 @@ namespace homing_local_planner
         nav2_util::declare_parameter_if_not_declared(
             node, plugin_name_ + ".robot_max_vel_theta", rclcpp::ParameterValue(0.4));
         nav2_util::declare_parameter_if_not_declared(
+            node, plugin_name_ + ".robot_min_turn_radius", rclcpp::ParameterValue(0.0));
+        nav2_util::declare_parameter_if_not_declared(
             node, plugin_name_ + ".robot_turn_around_priority", rclcpp::ParameterValue(true));
         nav2_util::declare_parameter_if_not_declared(
             node, plugin_name_ + ".robot_stop_dist", rclcpp::ParameterValue(0.5));
@@ -77,6 +79,7 @@ namespace homing_local_planner
 
         node->get_parameter(plugin_name_ + ".robot_max_vel_x", robot_max_vel_x_);
         node->get_parameter(plugin_name_ + ".robot_max_vel_theta", robot_max_vel_theta_);
+        node->get_parameter(plugin_name_ + ".robot_min_turn_radius", robot_min_turn_radius_);
         node->get_parameter(plugin_name_ + ".robot_turn_around_priority", robot_turn_around_priority_);
         node->get_parameter(plugin_name_ + ".robot_stop_dist", robot_stop_dist_);
         node->get_parameter(plugin_name_ + ".robot_dec_dist", robot_dec_dist_);
@@ -199,23 +202,32 @@ namespace homing_local_planner
         poseError(dx1, dy1, dyaw1, rho, alpha, phi);
         homingControl(rho, alpha, phi, v, omega);
 
-        double d_atan = std::atan2(dy1, dx1);
-        double d_atan_phi = fabs(d_atan - phi);
-        if ((xy_reached_) or
-            (robot_turn_around_priority_ and fabs(phi) > 0.75 and
-             (d_atan_phi < 0.5 or fmod(d_atan_phi, M_PI) < 0.5 or fmod(d_atan_phi, M_PI) > 2.6)))
+        if (robot_min_turn_radius_ > 0.0)
         {
-            v = 0;
-            omega = clip(phi, robot_max_vel_theta_ * (-1.0), robot_max_vel_theta_);
+            double omega_max = fabs(v / robot_min_turn_radius_);
+            omega = clip(omega, omega_max * (-1.0), omega_max);
         }
-        cmd_vel.twist.linear.x = v;
-        cmd_vel.twist.angular.z = omega;
+        else
+        {
+            double d_atan = std::atan2(dy1, dx1);
+            double d_atan_phi = fabs(d_atan - phi);
+            if ((xy_reached_) or
+                (robot_turn_around_priority_ and fabs(phi) > 0.75 and
+                 (d_atan_phi < 0.5 or fmod(d_atan_phi, M_PI) < 0.5 or fmod(d_atan_phi, M_PI) > 2.6)))
+            {
+                v = 0;
+                omega = clip(phi, robot_max_vel_theta_ * (-1.0), robot_max_vel_theta_);
+            }
+        }
 
         if (lethal_distance < robot_stop_dist_)
         {
-            cmd_vel.twist.linear.x = 0;
-            cmd_vel.twist.angular.z = 0;
+            v = 0;
+            omega = 0;
         }
+
+        cmd_vel.twist.linear.x = v;
+        cmd_vel.twist.angular.z = omega;
 
         visualization_->publishViaPoints(via_points_vec_);
         visualization_->publishViaPoints(collision_points_, "CollsionPoints", visualization_->toColorMsg(1.0, 1.0, 0.65, 0.0));

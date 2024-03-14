@@ -65,6 +65,7 @@ controller_server:
       optimization_k_phi: -1.0
       robot_max_vel_x: 0.3
       robot_max_vel_theta: 0.5
+      robot_min_turn_radius: 0.0
       robot_turn_around_priority: true
       robot_stop_dist: 0.5
       robot_dec_dist: 1.0
